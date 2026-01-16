@@ -1,0 +1,35 @@
+# docker/docker-compose.prod.yml
+# MR Tracker - Docker Compose per VPS (usa immagine pre-built da GHCR)
+
+version: '3.8'
+
+services:
+  mr-tracker:
+    image: ghcr.io/${GITHUB_USERNAME}/mr-tracker:latest
+    container_name: mr-tracker
+    restart: unless-stopped
+    ports:
+      - "3100:3000"
+    environment:
+      - DATABASE_URL=file:/app/data/mr-tracker.db
+      - CRON_SECRET=${CRON_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - REPORT_EMAIL=${REPORT_EMAIL:-alessio@karalisweb.net}
+      - NEXT_PUBLIC_APP_URL=https://mr.karalisweb.net
+      - TZ=Europe/Rome
+    volumes:
+      - mr-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mr-data:
+    driver: local

@@ -1,0 +1,96 @@
+// prisma/schema.prisma
+// MR Tracker - Morning Routine Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model DailyLog {
+  id   String   @id @default(cuid())
+  date DateTime @unique // Data del giorno (solo data, no ora)
+
+  // ===== SVEGLIA =====
+  wakeUpTime   DateTime?
+  sleepQuality Int? // Percentuale 0-100
+
+  // ===== PESO =====
+  weight      Float?
+  weightDelta Float? // Calcolato automaticamente vs giorno precedente
+
+  // ===== ACQUA + CAFFE =====
+  waterCoffeeStart DateTime?
+  waterCoffeeEnd   DateTime?
+
+  // ===== ALLENAMENTO =====
+  workoutStart DateTime?
+  workoutEnd   DateTime?
+  workoutNotes String? // Esercizi, libro Audible
+
+  // ===== RIORDINO STANZA =====
+  tidyRoomStart DateTime?
+  tidyRoomEnd   DateTime?
+
+  // ===== CAFFE + INTEGRATORI =====
+  coffeeSuppsStart DateTime?
+  coffeeSuppsEnd   DateTime?
+
+  // ===== DOCCIA =====
+  showerStart DateTime?
+  showerEnd   DateTime?
+
+  // ===== LODI CON DANIELA =====
+  laudsStart DateTime?
+  laudsEnd   DateTime?
+
+  // ===== DIARIO =====
+  journalStart DateTime?
+  journalEnd   DateTime?
+
+  // ===== LETTURA TECNICA =====
+  readingStart DateTime?
+  readingEnd   DateTime?
+  readingNotes String? // Libro, pagine
+
+  // ===== PASSEGGIATA (opzionale) =====
+  walkStart   DateTime?
+  walkEnd     DateTime?
+  walkNotes   String?
+  walkSkipped Boolean @default(false)
+
+  // ===== METADATA =====
+  routineEndTime DateTime? // Ora fine ultima attivita
+  totalDuration  Int? // Minuti totali
+  totalGapTime   Int? // Minuti persi tra attivita
+  completed      Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WeeklyReport {
+  id        String   @id @default(cuid())
+  weekStart DateTime // Lunedi della settimana
+  weekEnd   DateTime // Domenica della settimana
+
+  daysCompleted Int // Giorni con routine completata
+  daysTotal     Int // Giorni totali (7)
+
+  avgWakeUpTime String? // Media ora sveglia (formato HH:mm)
+  avgDuration   Int? // Media durata routine in minuti
+  avgGapTime    Int? // Media tempo perso
+
+  weightStart Float? // Peso inizio settimana
+  weightEnd   Float? // Peso fine settimana
+  weightDelta Float? // Differenza
+
+  mostSkipped String? // Activity ID piu saltata
+
+  sentAt DateTime?
+
+  createdAt DateTime @default(now())
+}
