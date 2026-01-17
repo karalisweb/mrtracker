@@ -26,6 +26,10 @@ model DailyLog {
   waterCoffeeStart DateTime?
   waterCoffeeEnd   DateTime?
 
+  // ===== PREPARAZIONE ALLENAMENTO =====
+  workoutPrepStart DateTime?
+  workoutPrepEnd   DateTime?
+
   // ===== ALLENAMENTO =====
   workoutStart DateTime?
   workoutEnd   DateTime?
@@ -46,6 +50,10 @@ model DailyLog {
   // ===== LODI CON DANIELA =====
   laudsStart DateTime?
   laudsEnd   DateTime?
+
+  // ===== COLAZIONE =====
+  breakfastStart DateTime?
+  breakfastEnd   DateTime?
 
   // ===== DIARIO =====
   journalStart DateTime?

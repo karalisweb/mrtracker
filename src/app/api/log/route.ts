@@ -4,6 +4,8 @@ import { ACTIVITIES, getRequiredActivities } from "@/lib/activities";
 import { ActivityData, DailyLogData, DailyLogSummary } from "@/types";
 import { startOfDay } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 function getActivityState(log: Record<string, unknown>, activity: typeof ACTIVITIES[0]): ActivityData {
   const { id, type, dbStartField, dbEndField, dbValueField } = activity;
 
