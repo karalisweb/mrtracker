@@ -4,6 +4,8 @@ import { ACTIVITIES } from "@/lib/activities";
 import { StatsData } from "@/types";
 import { subDays, subMonths, startOfDay } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 function calculateAverageTime(times: Date[]): string | null {
   if (times.length === 0) return null;
 
