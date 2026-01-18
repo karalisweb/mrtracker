@@ -21,6 +21,7 @@ const stateStyles: Record<ActivityState, string> = {
 };
 
 const LONG_PRESS_DURATION = 600; // ms
+const MOVE_THRESHOLD = 10; // pixel di movimento per cancellare il tap
 
 export function ActivityButton({
   activity,
@@ -30,6 +31,8 @@ export function ActivityButton({
 }: ActivityButtonProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
+  const isCancelledRef = useRef(false);
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const canReset = data.state === "completed" || data.state === "skipped";
 
   const clearTimer = useCallback(() => {
@@ -39,32 +42,68 @@ export function ActivityButton({
     }
   }, []);
 
-  const handlePressStart = useCallback(() => {
+  const handlePressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     isLongPressRef.current = false;
+    isCancelledRef.current = false;
+
+    // Salva posizione iniziale
+    if ('touches' in e) {
+      startPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else {
+      startPosRef.current = { x: e.clientX, y: e.clientY };
+    }
 
     if (canReset && onReset) {
       timerRef.current = setTimeout(() => {
-        isLongPressRef.current = true;
-        triggerHaptic();
-        onReset();
+        if (!isCancelledRef.current) {
+          isLongPressRef.current = true;
+          triggerHaptic();
+          onReset();
+        }
       }, LONG_PRESS_DURATION);
     }
   }, [canReset, onReset]);
 
+  const handleMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    if (!startPosRef.current || isCancelledRef.current) return;
+
+    let currentX: number, currentY: number;
+    if ('touches' in e) {
+      currentX = e.touches[0].clientX;
+      currentY = e.touches[0].clientY;
+    } else {
+      currentX = e.clientX;
+      currentY = e.clientY;
+    }
+
+    const deltaX = Math.abs(currentX - startPosRef.current.x);
+    const deltaY = Math.abs(currentY - startPosRef.current.y);
+
+    // Se movimento supera soglia, cancella tutto
+    if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+      isCancelledRef.current = true;
+      clearTimer();
+    }
+  }, [clearTimer]);
+
   const handlePressEnd = useCallback(() => {
     clearTimer();
 
-    // Solo se non è stata una long press, esegui il tap normale
-    if (!isLongPressRef.current) {
+    // Solo se non è stata una long press e non è stato cancellato da movimento
+    if (!isLongPressRef.current && !isCancelledRef.current) {
       triggerHaptic();
       onTap();
     }
     isLongPressRef.current = false;
+    isCancelledRef.current = false;
+    startPosRef.current = null;
   }, [clearTimer, onTap]);
 
   const handlePressCancel = useCallback(() => {
     clearTimer();
     isLongPressRef.current = false;
+    isCancelledRef.current = false;
+    startPosRef.current = null;
   }, [clearTimer]);
 
   const renderContent = () => {
@@ -140,9 +179,11 @@ export function ActivityButton({
   return (
     <button
       onTouchStart={handlePressStart}
+      onTouchMove={handleMove}
       onTouchEnd={handlePressEnd}
       onTouchCancel={handlePressCancel}
       onMouseDown={handlePressStart}
+      onMouseMove={handleMove}
       onMouseUp={handlePressEnd}
       onMouseLeave={handlePressCancel}
       className={cn(
