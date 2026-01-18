@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useCallback } from "react";
 import { cn, formatTime, triggerHaptic } from "@/lib/utils";
 import { Activity } from "@/lib/activities";
 import { ActivityData, ActivityState } from "@/types";
@@ -19,16 +20,59 @@ const stateStyles: Record<ActivityState, string> = {
   skipped: "bg-yellow-500 text-gray-900 border-yellow-400",
 };
 
+const LONG_PRESS_DURATION = 500; // ms
+
 export function ActivityButton({
   activity,
   data,
   onTap,
   onLongPress,
 }: ActivityButtonProps) {
-  const handleClick = () => {
-    triggerHaptic();
-    onTap();
-  };
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPress = useRef(false);
+  const isTouchDevice = useRef(false);
+
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleTouchStart = useCallback(() => {
+    isTouchDevice.current = true;
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      if (onLongPress) {
+        triggerHaptic();
+        onLongPress();
+      }
+    }, LONG_PRESS_DURATION);
+  }, [onLongPress]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); // Previene il click sintetico
+    clearLongPressTimer();
+    if (!isLongPress.current) {
+      triggerHaptic();
+      onTap();
+    }
+  }, [clearLongPressTimer, onTap]);
+
+  const handleTouchMove = useCallback(() => {
+    clearLongPressTimer();
+  }, [clearLongPressTimer]);
+
+  const handleClick = useCallback(() => {
+    // Solo per mouse, non per touch
+    if (!isTouchDevice.current) {
+      triggerHaptic();
+      onTap();
+    }
+    // Reset per il prossimo utilizzo
+    isTouchDevice.current = false;
+  }, [onTap]);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -110,13 +154,16 @@ export function ActivityButton({
 
   return (
     <button
-      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
       onContextMenu={handleContextMenu}
+      onClick={handleClick}
       className={cn(
         "flex flex-col items-center justify-center",
         "w-full aspect-square rounded-2xl",
         "border-2 transition-all duration-200",
-        "active:scale-95",
+        "active:scale-95 select-none touch-manipulation",
         stateStyles[data.state]
       )}
     >
