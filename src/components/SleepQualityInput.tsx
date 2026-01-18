@@ -1,26 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { cn, formatTime } from "@/lib/utils";
+import { formatTime } from "@/lib/utils";
 
 interface SleepQualityInputProps {
   onSave: (quality: number) => void;
   onCancel: () => void;
 }
 
-const SLEEP_QUALITY_OPTIONS = [
-  { value: 100, label: "Ottimo", color: "text-green-400" },
-  { value: 80, label: "Buono", color: "text-green-400" },
-  { value: 60, label: "Discreto", color: "text-yellow-400" },
-  { value: 40, label: "Sufficiente", color: "text-yellow-400" },
-  { value: 20, label: "Scarso", color: "text-red-400" },
-];
-
 export function SleepQualityInput({ onSave, onCancel }: SleepQualityInputProps) {
-  const [quality, setQuality] = useState(80);
+  const [quality, setQuality] = useState("");
   const now = new Date();
 
-  const selectedOption = SLEEP_QUALITY_OPTIONS.find(opt => opt.value === quality);
+  const handleSave = () => {
+    const value = parseInt(quality);
+    if (!isNaN(value) && value >= 0 && value <= 100) {
+      onSave(value);
+    }
+  };
+
+  const isValid = quality !== "" && !isNaN(parseInt(quality)) && parseInt(quality) >= 0 && parseInt(quality) <= 100;
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -33,24 +32,18 @@ export function SleepQualityInput({ onSave, onCancel }: SleepQualityInputProps) 
         </div>
 
         <div className="mb-6">
-          <p className="text-gray-400 text-sm mb-3 text-center">Qualita sonno</p>
-          <select
+          <p className="text-gray-400 text-sm mb-3 text-center">Qualità sonno (%)</p>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="0"
+            max="100"
             value={quality}
-            onChange={(e) => setQuality(parseInt(e.target.value))}
-            className="w-full p-3 bg-gray-700 border border-gray-600 rounded-xl text-white text-lg font-semibold text-center appearance-none cursor-pointer focus:outline-none focus:border-blue-500"
-          >
-            {SLEEP_QUALITY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} ({option.value}%)
-              </option>
-            ))}
-          </select>
-          <p className={cn(
-            "text-center text-3xl font-bold mt-3",
-            selectedOption?.color || "text-gray-400"
-          )}>
-            {quality}%
-          </p>
+            onChange={(e) => setQuality(e.target.value)}
+            placeholder="0-100"
+            className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl text-white text-3xl font-bold text-center focus:outline-none focus:border-blue-500"
+            autoFocus
+          />
         </div>
 
         <div className="flex gap-3">
@@ -61,8 +54,9 @@ export function SleepQualityInput({ onSave, onCancel }: SleepQualityInputProps) 
             Annulla
           </button>
           <button
-            onClick={() => onSave(quality)}
-            className="btn-primary flex-1"
+            onClick={handleSave}
+            disabled={!isValid}
+            className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Salva
           </button>
