@@ -131,7 +131,25 @@ export function ActivityButton({
       {canReset && onReset && (
         <button
           onClick={handleReset}
-          className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg"
+          style={{
+            position: 'absolute',
+            top: '-8px',
+            right: '-8px',
+            width: '28px',
+            height: '28px',
+            backgroundColor: '#ef4444',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+            zIndex: 10,
+          }}
           title="Annulla"
         >
           ✕
