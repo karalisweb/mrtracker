@@ -69,12 +69,30 @@ export function ActivityButton({
           );
         }
         if (data.startTime && data.endTime) {
+          // Prova a parsare le note come dati allenamento (JSON)
+          let workoutInfo = null;
+          if (activity.id === "workout" && data.notes) {
+            try {
+              const parsed = JSON.parse(data.notes);
+              if (parsed.bpm || parsed.calories) {
+                workoutInfo = parsed;
+              }
+            } catch {
+              // Non è JSON, usa come nota normale
+            }
+          }
+
           return (
             <div className="flex flex-col items-center">
               <span className="text-lg font-semibold">
                 {formatTime(data.startTime)} - {formatTime(data.endTime)}
               </span>
-              {data.notes && (
+              {workoutInfo ? (
+                <div className="text-xs opacity-80 flex gap-2">
+                  {workoutInfo.bpm && <span>{workoutInfo.bpm} bpm</span>}
+                  {workoutInfo.calories && <span>{workoutInfo.calories} kcal</span>}
+                </div>
+              ) : data.notes && (
                 <span className="text-xs opacity-80 truncate max-w-full px-2">{data.notes}</span>
               )}
             </div>

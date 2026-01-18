@@ -12,11 +12,13 @@ import { WeightInput } from "@/components/WeightInput";
 import { SleepQualityInput } from "@/components/SleepQualityInput";
 import { NotesModal } from "@/components/NotesModal";
 import { WalkModal } from "@/components/WalkModal";
+import { WorkoutModal, WorkoutData } from "@/components/WorkoutModal";
 
 type Modal =
   | { type: "weight" }
   | { type: "sleep" }
   | { type: "notes"; activityId: string; duration: number | null }
+  | { type: "workout"; duration: number | null }
   | { type: "walk" }
   | null;
 
@@ -29,6 +31,7 @@ export default function HomePage() {
     setWakeUp,
     setTime,
     skipActivity,
+    resetActivity,
   } = useActivity(refresh);
 
   const [modal, setModal] = useState<Modal>(null);
@@ -83,7 +86,10 @@ export default function HomePage() {
         const startTime = new Date(activityData.startTime!).getTime();
         const duration = Math.round((Date.now() - startTime) / 60000);
 
-        if (activity.hasNotes) {
+        if (activityId === "workout") {
+          setPendingStop({ activityId, duration });
+          setModal({ type: "workout", duration });
+        } else if (activity.hasNotes) {
           setPendingStop({ activityId, duration });
           setModal({ type: "notes", activityId, duration });
         } else {
@@ -123,6 +129,24 @@ export default function HomePage() {
     setModal(null);
   };
 
+  const handleWorkoutSave = async (data: WorkoutData) => {
+    if (pendingStop) {
+      // Salva i dati come JSON nel campo notes
+      const notes = JSON.stringify(data);
+      await stopActivity(pendingStop.activityId, notes);
+      setPendingStop(null);
+    }
+    setModal(null);
+  };
+
+  const handleWorkoutSkip = async () => {
+    if (pendingStop) {
+      await stopActivity(pendingStop.activityId);
+      setPendingStop(null);
+    }
+    setModal(null);
+  };
+
   const handleWalkStart = async () => {
     await startActivity("walk");
     setModal(null);
@@ -131,6 +155,18 @@ export default function HomePage() {
   const handleWalkSkip = async () => {
     await skipActivity("walk");
     setModal(null);
+  };
+
+  const handleActivityLongPress = async (activityId: string) => {
+    if (!data) return;
+
+    const activityData = data.activities[activityId];
+    if (!activityData) return;
+
+    // Permetti reset solo per attività completate o skipped
+    if (activityData.state === "completed" || activityData.state === "skipped") {
+      await resetActivity(activityId);
+    }
   };
 
   if (loading) {
@@ -168,6 +204,7 @@ export default function HomePage() {
               activity={activity}
               data={data.activities[activity.id]}
               onTap={() => handleActivityTap(activity.id)}
+              onLongPress={() => handleActivityLongPress(activity.id)}
             />
           ))}
         </div>
@@ -196,6 +233,14 @@ export default function HomePage() {
           duration={modal.duration}
           onSave={handleNotesSave}
           onSkip={handleNotesSkip}
+        />
+      )}
+
+      {modal?.type === "workout" && (
+        <WorkoutModal
+          duration={modal.duration}
+          onSave={handleWorkoutSave}
+          onSkip={handleWorkoutSkip}
         />
       )}
 

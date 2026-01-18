@@ -8,9 +8,19 @@ interface SleepQualityInputProps {
   onCancel: () => void;
 }
 
+const SLEEP_QUALITY_OPTIONS = [
+  { value: 100, label: "Ottimo", color: "text-green-400" },
+  { value: 80, label: "Buono", color: "text-green-400" },
+  { value: 60, label: "Discreto", color: "text-yellow-400" },
+  { value: 40, label: "Sufficiente", color: "text-yellow-400" },
+  { value: 20, label: "Scarso", color: "text-red-400" },
+];
+
 export function SleepQualityInput({ onSave, onCancel }: SleepQualityInputProps) {
-  const [quality, setQuality] = useState(70);
+  const [quality, setQuality] = useState(80);
   const now = new Date();
+
+  const selectedOption = SLEEP_QUALITY_OPTIONS.find(opt => opt.value === quality);
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -24,18 +34,20 @@ export function SleepQualityInput({ onSave, onCancel }: SleepQualityInputProps) 
 
         <div className="mb-6">
           <p className="text-gray-400 text-sm mb-3 text-center">Qualita sonno</p>
-          <input
-            type="range"
-            min="0"
-            max="100"
+          <select
             value={quality}
             onChange={(e) => setQuality(parseInt(e.target.value))}
-            className="w-full h-3 bg-gray-700 rounded-full appearance-none cursor-pointer"
-          />
+            className="w-full p-3 bg-gray-700 border border-gray-600 rounded-xl text-white text-lg font-semibold text-center appearance-none cursor-pointer focus:outline-none focus:border-blue-500"
+          >
+            {SLEEP_QUALITY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} ({option.value}%)
+              </option>
+            ))}
+          </select>
           <p className={cn(
             "text-center text-3xl font-bold mt-3",
-            quality >= 70 ? "text-green-400" :
-            quality >= 40 ? "text-yellow-400" : "text-red-400"
+            selectedOption?.color || "text-gray-400"
           )}>
             {quality}%
           </p>
