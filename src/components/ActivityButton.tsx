@@ -20,7 +20,7 @@ const stateStyles: Record<ActivityState, string> = {
   skipped: "bg-yellow-500 text-gray-900 border-yellow-400",
 };
 
-const LONG_PRESS_DURATION = 500; // ms
+const LONG_PRESS_DURATION = 600; // ms
 
 export function ActivityButton({
   activity,
@@ -29,21 +29,12 @@ export function ActivityButton({
   onLongPress,
 }: ActivityButtonProps) {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const isLongPress = useRef(false);
-  const isTouchDevice = useRef(false);
+  const didLongPress = useRef(false);
 
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
-
-  const handleTouchStart = useCallback(() => {
-    isTouchDevice.current = true;
-    isLongPress.current = false;
+  const startPress = useCallback(() => {
+    didLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
-      isLongPress.current = true;
+      didLongPress.current = true;
       if (onLongPress) {
         triggerHaptic();
         onLongPress();
@@ -51,36 +42,25 @@ export function ActivityButton({
     }, LONG_PRESS_DURATION);
   }, [onLongPress]);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    e.preventDefault(); // Previene il click sintetico
-    clearLongPressTimer();
-    if (!isLongPress.current) {
+  const endPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (!didLongPress.current) {
       triggerHaptic();
       onTap();
     }
-  }, [clearLongPressTimer, onTap]);
-
-  const handleTouchMove = useCallback(() => {
-    clearLongPressTimer();
-  }, [clearLongPressTimer]);
-
-  const handleClick = useCallback(() => {
-    // Solo per mouse, non per touch
-    if (!isTouchDevice.current) {
-      triggerHaptic();
-      onTap();
-    }
-    // Reset per il prossimo utilizzo
-    isTouchDevice.current = false;
+    didLongPress.current = false;
   }, [onTap]);
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (onLongPress) {
-      triggerHaptic();
-      onLongPress();
+  const cancelPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
-  };
+    didLongPress.current = false;
+  }, []);
 
   const renderContent = () => {
     switch (data.state) {
@@ -154,11 +134,11 @@ export function ActivityButton({
 
   return (
     <button
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchMove={handleTouchMove}
-      onContextMenu={handleContextMenu}
-      onClick={handleClick}
+      onPointerDown={startPress}
+      onPointerUp={endPress}
+      onPointerLeave={cancelPress}
+      onPointerCancel={cancelPress}
+      onContextMenu={(e) => e.preventDefault()}
       className={cn(
         "flex flex-col items-center justify-center",
         "w-full aspect-square rounded-2xl",
