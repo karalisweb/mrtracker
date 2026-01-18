@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useCallback } from "react";
 import { cn, formatTime, triggerHaptic } from "@/lib/utils";
 import { Activity } from "@/lib/activities";
 import { ActivityData, ActivityState } from "@/types";
@@ -19,26 +20,52 @@ const stateStyles: Record<ActivityState, string> = {
   skipped: "bg-yellow-500 text-gray-900 border-yellow-400",
 };
 
+const LONG_PRESS_DURATION = 600; // ms
+
 export function ActivityButton({
   activity,
   data,
   onTap,
   onReset,
 }: ActivityButtonProps) {
-  const handleClick = () => {
-    triggerHaptic();
-    onTap();
-  };
-
-  const handleReset = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    triggerHaptic();
-    if (onReset) {
-      onReset();
-    }
-  };
-
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
   const canReset = data.state === "completed" || data.state === "skipped";
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const handlePressStart = useCallback(() => {
+    isLongPressRef.current = false;
+
+    if (canReset && onReset) {
+      timerRef.current = setTimeout(() => {
+        isLongPressRef.current = true;
+        triggerHaptic();
+        onReset();
+      }, LONG_PRESS_DURATION);
+    }
+  }, [canReset, onReset]);
+
+  const handlePressEnd = useCallback(() => {
+    clearTimer();
+
+    // Solo se non è stata una long press, esegui il tap normale
+    if (!isLongPressRef.current) {
+      triggerHaptic();
+      onTap();
+    }
+    isLongPressRef.current = false;
+  }, [clearTimer, onTap]);
+
+  const handlePressCancel = useCallback(() => {
+    clearTimer();
+    isLongPressRef.current = false;
+  }, [clearTimer]);
 
   const renderContent = () => {
     switch (data.state) {
@@ -111,50 +138,29 @@ export function ActivityButton({
   };
 
   return (
-    <div className="relative">
-      <button
-        onClick={handleClick}
-        className={cn(
-          "flex flex-col items-center justify-center",
-          "w-full aspect-square rounded-2xl",
-          "border-2 transition-all duration-200",
-          "active:scale-95 select-none",
-          stateStyles[data.state]
-        )}
-      >
-        <div className="flex items-center gap-2 mb-2">
-          <Icon name={activity.icon} size={20} />
-          <span className="text-sm font-medium">{activity.name}</span>
-        </div>
-        {renderContent()}
-      </button>
-      {canReset && onReset && (
-        <button
-          onClick={handleReset}
-          style={{
-            position: 'absolute',
-            top: '-8px',
-            right: '-8px',
-            width: '28px',
-            height: '28px',
-            backgroundColor: '#ef4444',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-            zIndex: 10,
-          }}
-          title="Annulla"
-        >
-          ✕
-        </button>
+    <button
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
+      onTouchCancel={handlePressCancel}
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onMouseLeave={handlePressCancel}
+      className={cn(
+        "flex flex-col items-center justify-center",
+        "w-full aspect-square rounded-2xl",
+        "border-2 transition-all duration-200",
+        "active:scale-95 select-none",
+        stateStyles[data.state]
       )}
-    </div>
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <Icon name={activity.icon} size={20} />
+        <span className="text-sm font-medium">{activity.name}</span>
+      </div>
+      {renderContent()}
+      {canReset && (
+        <span className="text-xs mt-1 opacity-60">Tieni premuto per annullare</span>
+      )}
+    </button>
   );
 }
