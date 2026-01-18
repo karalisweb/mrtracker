@@ -157,16 +157,8 @@ export default function HomePage() {
     setModal(null);
   };
 
-  const handleActivityLongPress = async (activityId: string) => {
-    if (!data) return;
-
-    const activityData = data.activities[activityId];
-    if (!activityData) return;
-
-    // Permetti reset solo per attività completate o skipped
-    if (activityData.state === "completed" || activityData.state === "skipped") {
-      await resetActivity(activityId);
-    }
+  const handleActivityReset = async (activityId: string) => {
+    await resetActivity(activityId);
   };
 
   if (loading) {
@@ -204,7 +196,7 @@ export default function HomePage() {
               activity={activity}
               data={data.activities[activity.id]}
               onTap={() => handleActivityTap(activity.id)}
-              onLongPress={() => handleActivityLongPress(activity.id)}
+              onReset={() => handleActivityReset(activity.id)}
             />
           ))}
         </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useCallback } from "react";
 import { cn, formatTime, triggerHaptic } from "@/lib/utils";
 import { Activity } from "@/lib/activities";
 import { ActivityData, ActivityState } from "@/types";
@@ -10,7 +9,7 @@ interface ActivityButtonProps {
   activity: Activity;
   data: ActivityData;
   onTap: () => void;
-  onLongPress?: () => void;
+  onReset?: () => void;
 }
 
 const stateStyles: Record<ActivityState, string> = {
@@ -20,47 +19,26 @@ const stateStyles: Record<ActivityState, string> = {
   skipped: "bg-yellow-500 text-gray-900 border-yellow-400",
 };
 
-const LONG_PRESS_DURATION = 600; // ms
-
 export function ActivityButton({
   activity,
   data,
   onTap,
-  onLongPress,
+  onReset,
 }: ActivityButtonProps) {
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const didLongPress = useRef(false);
+  const handleClick = () => {
+    triggerHaptic();
+    onTap();
+  };
 
-  const startPress = useCallback(() => {
-    didLongPress.current = false;
-    longPressTimer.current = setTimeout(() => {
-      didLongPress.current = true;
-      if (onLongPress) {
-        triggerHaptic();
-        onLongPress();
-      }
-    }, LONG_PRESS_DURATION);
-  }, [onLongPress]);
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic();
+    if (onReset) {
+      onReset();
+    }
+  };
 
-  const endPress = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    if (!didLongPress.current) {
-      triggerHaptic();
-      onTap();
-    }
-    didLongPress.current = false;
-  }, [onTap]);
-
-  const cancelPress = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    didLongPress.current = false;
-  }, []);
+  const canReset = data.state === "completed" || data.state === "skipped";
 
   const renderContent = () => {
     switch (data.state) {
@@ -133,25 +111,32 @@ export function ActivityButton({
   };
 
   return (
-    <button
-      onPointerDown={startPress}
-      onPointerUp={endPress}
-      onPointerLeave={cancelPress}
-      onPointerCancel={cancelPress}
-      onContextMenu={(e) => e.preventDefault()}
-      className={cn(
-        "flex flex-col items-center justify-center",
-        "w-full aspect-square rounded-2xl",
-        "border-2 transition-all duration-200",
-        "active:scale-95 select-none touch-manipulation",
-        stateStyles[data.state]
+    <div className="relative">
+      <button
+        onClick={handleClick}
+        className={cn(
+          "flex flex-col items-center justify-center",
+          "w-full aspect-square rounded-2xl",
+          "border-2 transition-all duration-200",
+          "active:scale-95 select-none",
+          stateStyles[data.state]
+        )}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <Icon name={activity.icon} size={20} />
+          <span className="text-sm font-medium">{activity.name}</span>
+        </div>
+        {renderContent()}
+      </button>
+      {canReset && onReset && (
+        <button
+          onClick={handleReset}
+          className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg"
+          title="Annulla"
+        >
+          ✕
+        </button>
       )}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <Icon name={activity.icon} size={20} />
-        <span className="text-sm font-medium">{activity.name}</span>
-      </div>
-      {renderContent()}
-    </button>
+    </div>
   );
 }
